@@ -1,0 +1,39 @@
+{
+  "name": "chequebook",
+  "version": "2.0",
+  "description": "",
+  "main": "truffle.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bittorrent/btfs-chequebook.git"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.3.3",
+    "solc": "^0.8.10"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-truffle5": "^2.0.2",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "bn-chai": "^1.0.1",
+    "chai": "^4.2.0",
+    "ethereumjs-abi": "^0.6.8",
+    "hardhat": "^2.6.8",
+    "solhint": "^3.3.6",
+    "solidity-coverage": "^0.7.17",
+    "web3": "^1.5.3"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "abigen": "./abigen/gen.sh ChequeBook ChequeBookFactory ",
+    "lint": "solhint contracts/ChequeBook.sol contracts/ChequeBookFactory.sol",
+    "coverage": "hardhat coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
