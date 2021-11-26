@@ -29,19 +29,11 @@ contract ChequeBook {
   );
   event ChequeBounced();
   event Withdraw(uint amount);
-  event IncreaseStake(uint amount);
-  event DecreaseStake(uint amount, address recipient);
 
   struct EIP712Domain {
     string name;
     string version;
     uint256 chainId;
-  }
-
-  /* structure to keep track of the stake records*/
-  struct stake {
-    uint amount; /* total stake */
-    uint canBeDecreasedAt; /* point in time after which stake can be decreased*/
   }
 
   bytes32 public constant EIP712DOMAIN_TYPEHASH = keccak256(
@@ -114,7 +106,6 @@ contract ChequeBook {
   }
 
   /// @return the balance of the chequebook
-  /// balance is parted to two parts: stake + issue cheques
   function totalbalance() public view returns(uint) {
     return token.balanceOf(address(this));
   }
