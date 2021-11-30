@@ -1,0 +1,34 @@
+on:
+  push:
+    branches: [main, master, code-coverage]
+  pull_request:
+    branches: [main, master, code-coverage]
+
+name: code-coverage
+
+jobs:
+  code-coverage:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install yarn
+        run: |
+          curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+          echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+          sudo apt-get update && sudo apt-get install -y yarn
+
+      - name: Code coverage
+        run: |
+          yarn && yarn coverage 
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.json
+          fail_ci_if_error: true
