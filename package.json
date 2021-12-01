@@ -31,7 +31,7 @@
     "test": "hardhat test",
     "abigen": "./abigen/gen.sh ChequeBook ChequeBookFactory ",
     "lint": "solhint contracts/ChequeBook.sol contracts/ChequeBookFactory.sol",
-    "coverage": "hardhat coverage"
+    "coverage": "hardhat coverage --solcoverjs ./.solcover.js"
   },
   "keywords": [],
   "author": "",

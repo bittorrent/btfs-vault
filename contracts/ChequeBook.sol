@@ -42,9 +42,6 @@ contract ChequeBook {
   bytes32 public constant CHEQUE_TYPEHASH = keccak256(
     "Cheque(address chequebook,address beneficiary,uint256 cumulativePayout)"
   );
-  bytes32 public constant CASHOUT_TYPEHASH = keccak256(
-    "Cashout(address chequebook,address sender,uint256 requestPayout,address recipient,uint256 callerPayout)"
-  );
 
 
 
@@ -122,7 +119,6 @@ contract ChequeBook {
     address beneficiary,
     address recipient,
     uint cumulativePayout,
-    uint callerPayout,
     bytes memory issuerSig
   ) internal {
     /* The issuer must have given explicit approval to the cumulativePayout, either by being the caller or by signature*/
@@ -136,7 +132,6 @@ contract ChequeBook {
     uint requestPayout = cumulativePayout.sub(paidOut[beneficiary]);
     /* calculates acutal payout */
     uint totalPayout = Math.min(requestPayout, totalbalance());
-    require(totalPayout >= callerPayout, "ChequeBook: cannot pay caller");
     /* increase the stored paidOut amount to avoid double payout */
     paidOut[beneficiary] = paidOut[beneficiary].add(totalPayout);
     totalPaidOut = totalPaidOut.add(totalPayout);
@@ -147,48 +142,10 @@ contract ChequeBook {
       emit ChequeBounced();
     }
 
-    if (callerPayout != 0) {
-    /* do a transfer to the caller if specified*/
-      require(token.transfer(msg.sender, callerPayout), "transfer failed");
-      /* do the actual payment */
-      require(token.transfer(recipient, totalPayout.sub(callerPayout)), "transfer failed");
-    } else {
-      /* do the actual payment */
-      require(token.transfer(recipient, totalPayout), "transfer failed");
-    }
+    /* do the actual payment */
+    require(token.transfer(recipient, totalPayout), "transfer failed");
 
-    emit ChequeCashed(beneficiary, recipient, msg.sender, totalPayout, cumulativePayout, callerPayout);
-  }
-  /**
-  @notice cash a cheque of the beneficiary by a non-beneficiary and reward the sender for doing so with callerPayout
-  @dev a beneficiary must be able to generate signatures (be an Externally Owned Account) to make use of this feature
-  @param beneficiary the beneficiary to which cheques were assigned. Beneficiary must be an Externally Owned Account
-  @param recipient receives the differences between cumulativePayment and what was already paid-out to the beneficiary minus callerPayout
-  @param cumulativePayout cumulative amount of cheques assigned to beneficiary
-  @param beneficiarySig beneficiary must have given explicit approval for cashing out the cumulativePayout by the sender and sending the callerPayout
-  @param issuerSig if issuer is not the sender, issuer must have given explicit approval on the cumulativePayout to the beneficiary
-  @param callerPayout when beneficiary does not have ether yet, he can incentivize other people to cash cheques with help of callerPayout
-  @param issuerSig if issuer is not the sender, issuer must have given explicit approval on the cumulativePayout to the beneficiary
-  */
-  function cashCheque(
-    address beneficiary,
-    address recipient,
-    uint cumulativePayout,
-    bytes memory beneficiarySig,
-    uint256 callerPayout,
-    bytes memory issuerSig
-  ) public {
-    require(
-      beneficiary == recoverEIP712(
-        cashOutHash(
-          address(this),
-          msg.sender,
-          cumulativePayout,
-          recipient,
-          callerPayout
-        ), beneficiarySig
-      ), "invalid beneficiary signature");
-    _cashChequeInternal(beneficiary, recipient, cumulativePayout, callerPayout, issuerSig);
+    emit ChequeCashed(beneficiary, recipient, msg.sender, totalPayout, cumulativePayout, 0);
   }
 
   /**
@@ -198,7 +155,7 @@ contract ChequeBook {
   @param issuerSig issuer must have given explicit approval on the cumulativePayout to the beneficiary
   */
   function cashChequeBeneficiary(address recipient, uint cumulativePayout, bytes memory issuerSig) public {
-    _cashChequeInternal(msg.sender, recipient, cumulativePayout, 0, issuerSig);
+    _cashChequeInternal(msg.sender, recipient, cumulativePayout, issuerSig);
   }
 
   function withdraw(uint amount) public {
@@ -207,6 +164,7 @@ contract ChequeBook {
     /* ensure we don't take anything from the hard deposit */
     require(amount <= totalbalance(), "totalbalance not sufficient");
     require(token.transfer(issuer, amount), "transfer failed");
+    emit Withdraw(amount);
   }
 
   function chequeHash(address chequebook, address beneficiary, uint cumulativePayout)
@@ -216,18 +174,6 @@ contract ChequeBook {
       chequebook,
       beneficiary,
       cumulativePayout
-    ));
-  }
-
-  function cashOutHash(address chequebook, address sender, uint requestPayout, address recipient, uint callerPayout)
-  internal pure returns (bytes32) {
-    return keccak256(abi.encode(
-      CASHOUT_TYPEHASH,
-      chequebook,
-      sender,
-      requestPayout,
-      recipient,
-      callerPayout
     ));
   }
 }

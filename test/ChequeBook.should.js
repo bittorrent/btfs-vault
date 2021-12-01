@@ -9,7 +9,7 @@ const ChequeBook = artifacts.require('ChequeBook')
 const ChequeBookFactory = artifacts.require('ChequeBookFactory')
 const TestToken = artifacts.require("TestToken")
 
-const { signCheque, signCashOut} = require("./swutils");
+const { signCheque, signCashOut} = require("./utils");
 const { expect } = require('chai');
 
 function shouldDeploy(issuer, value) {
@@ -169,6 +169,7 @@ function shouldNotCashChequeBeneficiary(recipient, toSubmitCumulativePayout, toS
     )
   })
 }
+
 function shouldCashCheque(beneficiary, recipient, cumulativePayout, callerPayout, from, beneficiarySignee, issuerSignee) {
   beforeEach(async function() {
     const beneficiarySig = await signCashOut(this.ChequeBook, from, cumulativePayout, recipient, callerPayout, beneficiarySignee)
@@ -195,6 +196,7 @@ function shouldCashCheque(beneficiary, recipient, cumulativePayout, callerPayout
   })
   cashChequeInternal(beneficiary, recipient, cumulativePayout, callerPayout, from)
 }
+
 function shouldNotCashCheque(beneficiaryToSign, issuerToSign, toSubmitFields, value, from, beneficiarySignee, issuerSignee, revertMessage) {
   beforeEach(async function() {
     this.beneficiarySig = await signCashOut(this.ChequeBook, from, beneficiaryToSign.cumulativePayout, beneficiaryToSign.recipient, beneficiaryToSign.callerPayout, beneficiarySignee)

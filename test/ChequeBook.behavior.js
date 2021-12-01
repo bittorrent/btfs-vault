@@ -8,8 +8,10 @@ const {
   shouldReturnIssuer,
   shouldCashChequeBeneficiary,
   shouldNotCashChequeBeneficiary,
+  /*
   shouldCashCheque,
   shouldNotCashCheque,
+  */
   shouldWithdraw,
   shouldNotWithdraw,
   shouldDeposit,
@@ -20,7 +22,9 @@ enabledTests = {
   cheques: true,
   issuer: true,
   cashChequeBeneficiary: true,
-  cashCheque: true,
+  /*
+  cashCheque: false,
+  */
   withdraw: true,
   deposit: true
 }
@@ -76,7 +80,7 @@ function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
         shouldReturnIssuer(issuer)
       }
     })
-
+/*
     describe(describeFunction + 'cashCheque', function () {
       if (enabledTests.cashCheque) {
         const beneficiary = defaults.beneficiary
@@ -238,6 +242,7 @@ function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
         })
       }
     })
+    */
 
     describe(describeFunction + 'cashChequeBeneficiary', function () {
       if (enabledTests.cashChequeBeneficiary) {
@@ -327,6 +332,18 @@ function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
           const toSubmitCumulativePayment = defaults.firstCumulativePayout
           const toSignCumulativePayment = toSubmitCumulativePayment
           const sender = beneficiary
+          describe(describeTest + 'shouldNotCashChequeBeneficiary', function () {
+            shouldNotCashChequeBeneficiary(recipient, toSubmitCumulativePayment, toSignCumulativePayment, signee, sender, value, revertMessage)
+          })
+        })
+        context('when the sender is not the issuer', function() {
+          const value = new BN(0)
+          const revertMessage = "invalid issuer signature"
+          const signee = beneficiary
+          const recipient = defaults.recipient
+          const toSubmitCumulativePayment = defaults.firstCumulativePayout
+          const toSignCumulativePayment = toSubmitCumulativePayment
+          const sender = alice
           describe(describeTest + 'shouldNotCashChequeBeneficiary', function () {
             shouldNotCashChequeBeneficiary(recipient, toSubmitCumulativePayment, toSignCumulativePayment, signee, sender, value, revertMessage)
           })
