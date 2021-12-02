@@ -1,5 +1,5 @@
-# btfs-chequebook
-[![codecov](https://codecov.io/gh/bittorrent/btfs-chequebook/branch/master/graph/badge.svg?token=GJRZXQ38D8)](https://codecov.io/gh/bittorrent/btfs-chequebook)
+# btfs-vault
+[![codecov](https://codecov.io/gh/bittorrent/btfs-vault/branch/master/graph/badge.svg?token=GJRZXQ38D8)](https://codecov.io/gh/bittorrent/btfs-chequebook)
 
 Cheque protocol of BTFS node
 ## Tests
