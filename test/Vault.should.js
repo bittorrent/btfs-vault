@@ -5,8 +5,8 @@ const {
   expectRevert
 } = require("@openzeppelin/test-helpers");
 
-const ChequeBook = artifacts.require('ChequeBook')
-const ChequeBookFactory = artifacts.require('ChequeBookFactory')
+const Vault = artifacts.require('Vault')
+const VaultFactory = artifacts.require('VaultFactory')
 const TestToken = artifacts.require("TestToken")
 
 const { signCheque, signCashOut} = require("./utils");
@@ -19,20 +19,20 @@ function shouldDeploy(issuer, value) {
   beforeEach(async function() {
     this.TestToken = await TestToken.new({from: issuer})
     await this.TestToken.mint(issuer, 1000000000, {from: issuer});    
-    this.chequeBookFactory = await ChequeBookFactory.new(this.TestToken.address)
-    let { logs } = await this.chequeBookFactory.deployChequeBook(issuer, salt)
-    this.ChequeBookAddress = logs[0].args.contractAddress
-    this.ChequeBook = await ChequeBook.at(this.ChequeBookAddress)
+    this.vaultFactory = await VaultFactory.new(this.TestToken.address)
+    let { logs } = await this.vaultFactory.deployVault(issuer, salt)
+    this.VaultAddress = logs[0].args.contractAddress
+    this.Vault = await Vault.at(this.VaultAddress)
     if(value != 0) {
-      await this.TestToken.transfer(this.ChequeBook.address, value, {from: issuer});
+      await this.TestToken.transfer(this.Vault.address, value, {from: issuer});
     }
     this.postconditions = {
-      issuer: await this.ChequeBook.issuer()
+      issuer: await this.Vault.issuer()
     }
   })
 
   it('should not allow a second init', async function() {
-    await expectRevert(this.ChequeBook.init(issuer, this.TestToken.address), "revert")
+    await expectRevert(this.Vault.init(issuer, this.TestToken.address), "revert")
   })
 
   it('should set the issuer', function() {
@@ -42,7 +42,7 @@ function shouldDeploy(issuer, value) {
 
 function shouldReturnPaidOut(beneficiary, expectedAmount) {
   beforeEach(async function() {
-    this.paidOut = await this.ChequeBook.paidOut(beneficiary)
+    this.paidOut = await this.Vault.paidOut(beneficiary)
   })
   it('should return the expected amount', function() {
     expect(expectedAmount).bignumber.to.be.equal(this.paidOut)
@@ -51,7 +51,7 @@ function shouldReturnPaidOut(beneficiary, expectedAmount) {
 
 function shouldReturnTotalPaidOut(expectedAmount) {
   beforeEach(async function() {
-    this.totalPaidOut = await this.ChequeBook.totalPaidOut()
+    this.totalPaidOut = await this.Vault.totalPaidOut()
   })
   it('should return the expected amount', function() {
     expect(expectedAmount).bignumber.to.be.equal(this.totalPaidOut)
@@ -60,7 +60,7 @@ function shouldReturnTotalPaidOut(expectedAmount) {
 
 function shouldReturnIssuer(expectedIssuer) {
   it('should return the expected issuer', async function() {
-    expect(await this.ChequeBook.issuer()).to.be.equal(expectedIssuer)
+    expect(await this.Vault.issuer()).to.be.equal(expectedIssuer)
   })
 
 }
@@ -68,13 +68,13 @@ function shouldReturnIssuer(expectedIssuer) {
 function cashChequeInternal(beneficiary, recipient, cumulativePayout, callerPayout, from) {
   beforeEach(async function() {
     let requestPayout = cumulativePayout.sub(this.preconditions.paidOut)
-    //if the requested payout is less than the chequebookBalance
-    if(requestPayout.lt(this.preconditions.chequebookBalance)) {
+    //if the requested payout is less than the vaultBalance
+    if(requestPayout.lt(this.preconditions.vaultBalance)) {
       // full amount requested can be paid out
       this.totalPayout = requestPayout
     } else {
       // partial amount requested can be paid out
-      this.totalPayout = this.preconditions.chequebookBalance
+      this.totalPayout = this.preconditions.vaultBalance
     }
     this.totalPaidOut = this.preconditions.totalPaidOut + this.totalPayout
   })
@@ -133,34 +133,34 @@ function shouldCashChequeBeneficiary(recipient, cumulativePayout, signee, from) 
     this.preconditions = {
       callerBalance: await this.TestToken.balanceOf(from),
       recipientBalance: await this.TestToken.balanceOf(recipient),
-      chequebookBalance: await this.ChequeBook.totalbalance(),
-      paidOut: await this.ChequeBook.paidOut(from),
-      totalPaidOut: await this.ChequeBook.totalPaidOut()
+      vaultBalance: await this.Vault.totalbalance(),
+      paidOut: await this.Vault.paidOut(from),
+      totalPaidOut: await this.Vault.totalPaidOut()
     }
 
-    const issuerSig = await signCheque(this.ChequeBook, from, cumulativePayout, signee)
+    const issuerSig = await signCheque(this.Vault, from, cumulativePayout, signee)
   
-    const { logs, receipt } = await this.ChequeBook.cashChequeBeneficiary(recipient, cumulativePayout, issuerSig, {from: from})
+    const { logs, receipt } = await this.Vault.cashChequeBeneficiary(recipient, cumulativePayout, issuerSig, {from: from})
     this.logs = logs
     this.receipt = receipt
   
     this.postconditions = {
       callerBalance: await this.TestToken.balanceOf(from),
       recipientBalance: await this.TestToken.balanceOf(recipient),
-      chequebookBalance: await this.ChequeBook.totalbalance(),
-      paidOut: await this.ChequeBook.paidOut(from),
-      totalPaidOut: await this.ChequeBook.totalPaidOut(),
-      bounced: await this.ChequeBook.bounced()
+      vaultBalance: await this.Vault.totalbalance(),
+      paidOut: await this.Vault.paidOut(from),
+      totalPaidOut: await this.Vault.totalPaidOut(),
+      bounced: await this.Vault.bounced()
     }
   })
   cashChequeInternal(from, recipient, cumulativePayout, new BN(0), from)
 }
 function shouldNotCashChequeBeneficiary(recipient, toSubmitCumulativePayout, toSignCumulativePayout, signee, from, value, revertMessage) {
   beforeEach(async function() {
-    this.issuerSig = await signCheque(this.ChequeBook, from, toSignCumulativePayout, signee)
+    this.issuerSig = await signCheque(this.Vault, from, toSignCumulativePayout, signee)
   })
   it('reverts', async function() {
-    await expectRevert(this.ChequeBook.cashChequeBeneficiary(
+    await expectRevert(this.Vault.cashChequeBeneficiary(
       recipient,
       toSubmitCumulativePayout,
       this.issuerSig,
@@ -172,26 +172,26 @@ function shouldNotCashChequeBeneficiary(recipient, toSubmitCumulativePayout, toS
 
 function shouldCashCheque(beneficiary, recipient, cumulativePayout, callerPayout, from, beneficiarySignee, issuerSignee) {
   beforeEach(async function() {
-    const beneficiarySig = await signCashOut(this.ChequeBook, from, cumulativePayout, recipient, callerPayout, beneficiarySignee)
-    const issuerSig = await signCheque(this.ChequeBook, beneficiary, cumulativePayout, issuerSignee)
+    const beneficiarySig = await signCashOut(this.Vault, from, cumulativePayout, recipient, callerPayout, beneficiarySignee)
+    const issuerSig = await signCheque(this.Vault, beneficiary, cumulativePayout, issuerSignee)
     this.preconditions = {
       callerBalance: await this.TestToken.balanceOf(from),
       recipientBalance: await this.TestToken.balanceOf(recipient),
-      chequebookBalance: await this.ChequeBook.totalbalance(),
-      paidOut: await this.ChequeBook.paidOut(beneficiary),
-      totalPaidOut: await this.ChequeBook.totalPaidOut()
+      vaultBalance: await this.Vault.totalbalance(),
+      paidOut: await this.Vault.paidOut(beneficiary),
+      totalPaidOut: await this.Vault.totalPaidOut()
     }
-    const { logs, receipt } = await this.ChequeBook.cashCheque(beneficiary, recipient, cumulativePayout, beneficiarySig, callerPayout, issuerSig, {from: from})
+    const { logs, receipt } = await this.Vault.cashCheque(beneficiary, recipient, cumulativePayout, beneficiarySig, callerPayout, issuerSig, {from: from})
     this.logs = logs
     this.receipt = receipt
   
     this.postconditions = {
       callerBalance: await this.TestToken.balanceOf(from),
       recipientBalance: await this.TestToken.balanceOf(recipient),
-      chequebookBalance: await this.ChequeBook.totalbalance(),
-      paidOut: await this.ChequeBook.paidOut(beneficiary),
-      totalPaidOut: await this.ChequeBook.totalPaidOut(),
-      bounced: await this.ChequeBook.bounced()
+      vaultBalance: await this.Vault.totalbalance(),
+      paidOut: await this.Vault.paidOut(beneficiary),
+      totalPaidOut: await this.Vault.totalPaidOut(),
+      bounced: await this.Vault.bounced()
     }
   })
   cashChequeInternal(beneficiary, recipient, cumulativePayout, callerPayout, from)
@@ -199,11 +199,11 @@ function shouldCashCheque(beneficiary, recipient, cumulativePayout, callerPayout
 
 function shouldNotCashCheque(beneficiaryToSign, issuerToSign, toSubmitFields, value, from, beneficiarySignee, issuerSignee, revertMessage) {
   beforeEach(async function() {
-    this.beneficiarySig = await signCashOut(this.ChequeBook, from, beneficiaryToSign.cumulativePayout, beneficiaryToSign.recipient, beneficiaryToSign.callerPayout, beneficiarySignee)
-    this.issuerSig = await signCheque(this.ChequeBook, issuerToSign.beneficiary, issuerToSign.cumulativePayout, issuerSignee)
+    this.beneficiarySig = await signCashOut(this.Vault, from, beneficiaryToSign.cumulativePayout, beneficiaryToSign.recipient, beneficiaryToSign.callerPayout, beneficiarySignee)
+    this.issuerSig = await signCheque(this.Vault, issuerToSign.beneficiary, issuerToSign.cumulativePayout, issuerSignee)
   })
   it('reverts', async function() {
-    await expectRevert(this.ChequeBook.cashCheque(
+    await expectRevert(this.Vault.cashCheque(
       toSubmitFields.beneficiary, 
       toSubmitFields.recipient, 
       toSubmitFields.cumulativePayout, 
@@ -220,14 +220,14 @@ function shouldWithdraw(amount, from) {
   beforeEach(async function() {
     this.preconditions = {
       callerBalance: await this.TestToken.balanceOf(from),
-      totalBalance: await this.ChequeBook.totalbalance()
+      totalBalance: await this.Vault.totalbalance()
     }
 
-    await this.ChequeBook.withdraw(amount, {from: from})
+    await this.Vault.withdraw(amount, {from: from})
 
     this.postconditions = {
       callerBalance: await  this.TestToken.balanceOf(from),
-      totalBalance: await this.ChequeBook.totalbalance()
+      totalBalance: await this.Vault.totalbalance()
     }
   })
 
@@ -241,7 +241,7 @@ function shouldWithdraw(amount, from) {
 }
 function shouldNotWithdraw(amount, from, value, revertMessage) {
   it('reverts', async function() {
-    await expectRevert(this.ChequeBook.withdraw(
+    await expectRevert(this.Vault.withdraw(
       amount,
       {from: from, value: value}), 
       revertMessage
@@ -252,13 +252,13 @@ function shouldNotWithdraw(amount, from, value, revertMessage) {
 function shouldDeposit(amount, from) {
   beforeEach(async function() {
     this.preconditions = {
-      balance: await this.ChequeBook.totalbalance(),
+      balance: await this.Vault.totalbalance(),
     }
-    const { logs } = await this.TestToken.transfer(this.ChequeBook.address, amount, {from: from})
+    const { logs } = await this.TestToken.transfer(this.Vault.address, amount, {from: from})
     this.logs = logs
   })
-  it('should update the balance of the checkbook', async function() {
-    expect(await this.ChequeBook.totalbalance()).bignumber.to.equal(this.preconditions.balance.add(amount))
+  it('should update the balance of the vault', async function() {
+    expect(await this.Vault.totalbalance()).bignumber.to.equal(this.preconditions.balance.add(amount))
   })
 }
 module.exports = {

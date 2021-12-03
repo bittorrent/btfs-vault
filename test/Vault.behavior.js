@@ -8,23 +8,16 @@ const {
   shouldReturnIssuer,
   shouldCashChequeBeneficiary,
   shouldNotCashChequeBeneficiary,
-  /*
-  shouldCashCheque,
-  shouldNotCashCheque,
-  */
   shouldWithdraw,
   shouldNotWithdraw,
   shouldDeposit,
-} = require('./ChequeBook.should.js')
+} = require('./Vault.should.js')
 
 // switch to false if you don't want to test the particular function
 enabledTests = {
   cheques: true,
   issuer: true,
   cashChequeBeneficiary: true,
-  /*
-  cashCheque: false,
-  */
   withdraw: true,
   deposit: true
 }
@@ -34,11 +27,11 @@ const describeFunction = 'FUNCTION: '
 const describePreCondition = 'PRE-CONDITION: '
 const describeTest = 'TEST: '
 
-// @param balance total ether deposited in checkbook
-// @param issuer the issuer of the checkbook
-// @param alice a counterparty of the checkbook 
-// @param bob a counterparty of the checkbook
-function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
+// @param balance total ether deposited in vault
+// @param issuer the issuer of the vault
+// @param alice a counterparty of the vault 
+// @param bob a counterparty of the vault
+function shouldBehaveLikeVault([issuer, alice, bob, carol]) {
   // defaults used throught the tests
   const defaults = {
     beneficiary: bob,
@@ -48,7 +41,7 @@ function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
     deposit: new BN(10000),
   }
 
-  context('as a cheque book', function () {
+  context('as a vault', function () {
     describe(describeFunction + 'paidOutCheques', function () {
       if (enabledTests.cheques) {
         const beneficiary = defaults.beneficiary
@@ -80,169 +73,6 @@ function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
         shouldReturnIssuer(issuer)
       }
     })
-/*
-    describe(describeFunction + 'cashCheque', function () {
-      if (enabledTests.cashCheque) {
-        const beneficiary = defaults.beneficiary
-        const firstCumulativePayout = defaults.firstCumulativePayout
-        const recipient = defaults.recipient
-        context('when the sender is not the issuer', function() {
-          const caller = alice
-          context("when we don't send value along", function () {
-            const value = new BN(0)
-            context('when the beneficiary provides the beneficiarySig', function () {
-              const beneficiarySignee = beneficiary
-              context('when the issuer provides the issuerSig', function () {
-                const issuerSignee = issuer
-                context('when the callerPayout is non-zero', function () {
-                  const callerPayout = defaults.firstCumulativePayout.div(new BN(100))
-                  context('when there is some money deposited', function () {
-                    context('when the money fully covers the cheque', function() {
-                      const depositAmount = firstCumulativePayout.add(defaults.secondCumulativePayout)
-                      describe(describePreCondition + 'shouldDeposit', function () {
-                        shouldDeposit(depositAmount, issuer)
-                        context('when we submit one cheque', function() {
-                          describe(describeTest + 'shouldCashCheque', function() {
-                            shouldCashCheque(beneficiary, recipient, firstCumulativePayout, callerPayout, caller, beneficiarySignee, issuerSignee)
-                          })
-                        })
-                        context('when we attempt to submit two cheques', function() {
-                          describe(describePreCondition + 'shouldCashCheque', function() {
-                            shouldCashCheque(beneficiary, recipient, firstCumulativePayout, callerPayout, caller, beneficiarySignee, issuerSignee)
-                            context('when the second cumulativePayout is higher than the first cumulativePayout', function() {
-                              const secondCumulativePayout = defaults.secondCumulativePayout
-                              describe(describeTest + 'shouldCashCheque', function() {
-                                shouldCashCheque(beneficiary, recipient, secondCumulativePayout, callerPayout, caller, beneficiarySignee, issuerSignee)
-                              })
-                            })
-                            context('when the second cumulativePayout is lower than the first cumulativePayout', function() {
-                              const secondCumulativePayout = firstCumulativePayout.sub(new BN(1))
-                              const revertMessage = 'ChequeBook: cannot cash'
-                              const beneficiaryToSign = {
-                                cumulativePayout: secondCumulativePayout,
-                                recipient,
-                                callerPayout
-                              }
-                              const issuerToSign = {
-                                beneficiary,
-                                cumulativePayout: secondCumulativePayout,
-                              }
-                              const toSubmit = Object.assign({}, beneficiaryToSign, issuerToSign)
-                              describe(describeTest + 'shouldNotCashCheque', function() {
-                                shouldNotCashCheque(beneficiaryToSign, issuerToSign, toSubmit, value, caller, beneficiarySignee, issuerSignee, revertMessage)
-                              })
-                            })
-                          })
-                        })
-                      })
-                    })
-                    context('when the money partly covers the cheque', function() {
-                      const depositAmount = firstCumulativePayout.div(new BN(2))
-                      describe(describePreCondition + 'shouldDeposit', function () {
-                        shouldDeposit(depositAmount, issuer)
-                        describe(describeTest + 'shouldCashCheque', function() {
-                          shouldCashCheque(beneficiary, recipient, firstCumulativePayout, callerPayout, caller, beneficiarySignee, issuerSignee)
-                        })
-                      })
-                    })                  
-                  })
-                  context('when no money is deposited', function () {
-                    const revertMessage = 'cannot pay caller'
-                    const beneficiaryToSign = {
-                      cumulativePayout: firstCumulativePayout,
-                      recipient,
-                      callerPayout
-                    }
-                    const issuerToSign = {
-                      beneficiary,
-                      cumulativePayout: firstCumulativePayout,
-                    }
-                    const toSubmit = Object.assign({}, beneficiaryToSign, issuerToSign)
-                    describe(describeTest + 'shouldNotCashCheque', function() {
-                      shouldNotCashCheque(beneficiaryToSign, issuerToSign, toSubmit, value, caller, beneficiarySignee, issuerSignee, revertMessage)
-                    })
-                  })
-                })
-                context('when the callerPayout is zero', function () {
-                  const callerPayout = new BN(0)
-                  describe(describeTest + 'shouldCashCheque', function() {
-                    shouldCashCheque(beneficiary, recipient, firstCumulativePayout, callerPayout, caller, beneficiarySignee, issuerSignee)
-                  })
-                })
-              })
-              context('when the issuer does not provide the issuerSig', function () {
-                const issuerSignee = alice
-                const callerPayout = defaults.firstCumulativePayout.div(new BN(100))
-                const revertMessage = 'invalid issuer signature'
-                const beneficiaryToSign = {
-                  cumulativePayout: firstCumulativePayout,
-                  recipient,
-                  callerPayout
-                }
-                const issuerToSign = {
-                  beneficiary,
-                  cumulativePayout: firstCumulativePayout,
-                }
-                const toSubmit = Object.assign({}, beneficiaryToSign, issuerToSign)
-                describe(describeTest + 'shouldNotCashCheque', function() {
-                  shouldNotCashCheque(beneficiaryToSign, issuerToSign, toSubmit, value, caller, beneficiarySignee, issuerSignee, revertMessage)
-                })
-              })
-  
-            })
-            context('when the beneficiary does not provide the beneficiarySig', function () {
-              const beneficiarySignee = alice
-              const issuerSignee = issuer
-              const callerPayout = defaults.firstCumulativePayout.div(new BN(100))
-              const revertMessage = 'invalid beneficiary signature'
-              const beneficiaryToSign = {
-                cumulativePayout: firstCumulativePayout,
-                recipient,
-                callerPayout
-              }
-              const issuerToSign = {
-                beneficiary,
-                cumulativePayout: firstCumulativePayout,
-              }
-              const toSubmit = Object.assign({}, beneficiaryToSign, issuerToSign)
-              describe(describeTest + 'shouldNotCashCheque', function() {
-                shouldNotCashCheque(beneficiaryToSign, issuerToSign, toSubmit, value, caller, beneficiarySignee, issuerSignee, revertMessage)
-              })
-            })
-          })
-          context('when we send value along', function () {
-            const value = new BN(50)
-            const beneficiarySignee = alice
-            const issuerSignee = issuer
-            const callerPayout = defaults.firstCumulativePayout.div(new BN(100))
-            const revertMessage = 'revert'
-            const beneficiaryToSign = {
-              cumulativePayout: firstCumulativePayout,
-              recipient,
-              callerPayout
-            }
-            const issuerToSign = {
-              beneficiary,
-              cumulativePayout: firstCumulativePayout,
-            }
-            const toSubmit = Object.assign({}, beneficiaryToSign, issuerToSign)
-            describe(describeTest + 'shouldNotCashCheque', function() {
-              shouldNotCashCheque(beneficiaryToSign, issuerToSign, toSubmit, value, caller, beneficiarySignee, issuerSignee, revertMessage)
-            })
-          })
-        })
-        context('when the sender is the issuer', function() {
-          const caller = issuer
-          const callerPayout = new BN(0)
-          const beneficiarySignee = beneficiary
-          const issuerSignee = beneficiary // on purpose not the correct signee, as it is not needed
-          describe(describeTest + 'shouldCashCheque', function() {
-            shouldCashCheque(beneficiary, recipient, firstCumulativePayout, callerPayout, caller, beneficiarySignee, issuerSignee)
-          })
-        })
-      }
-    })
-    */
 
     describe(describeFunction + 'cashChequeBeneficiary', function () {
       if (enabledTests.cashChequeBeneficiary) {
@@ -290,7 +120,7 @@ function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
                     describe(describePreCondition + 'shouldCashChequeBeneficiary', function () {
                       shouldCashChequeBeneficiary(recipient, defaults.firstCumulativePayout, signee, sender)
                       describe(describeTest + 'shouldCashChequeBeneficiary', function () {
-                        const revertMessage = "ChequeBook: cannot cash"
+                        const revertMessage = "Vault: cannot cash"
                         shouldNotCashChequeBeneficiary(recipient, defaults.firstCumulativePayout, defaults.firstCumulativePayout, signee, sender, value, revertMessage)
                       })
                     })
@@ -410,5 +240,5 @@ function shouldBehaveLikeChequeBook([issuer, alice, bob, carol]) {
 }
 
 module.exports = {
-  shouldBehaveLikeChequeBook
+  shouldBehaveLikeVault
 };

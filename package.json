@@ -1,5 +1,5 @@
 {
-  "name": "chequebook",
+  "name": "vault",
   "version": "2.0",
   "description": "",
   "main": "truffle.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bittorrent/btfs-chequebook.git"
+    "url": "https://github.com/bittorrent/btfs-vault.git"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.3",
@@ -29,8 +29,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "abigen": "./abigen/gen.sh ChequeBook ChequeBookFactory ",
-    "lint": "solhint contracts/ChequeBook.sol contracts/ChequeBookFactory.sol",
+    "abigen": "./abigen/gen.sh Vault.sol VaultFactory ",
+    "lint": "solhint contracts/Vault.sol contracts/VaultFactory.sol",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js"
   },
   "keywords": [],

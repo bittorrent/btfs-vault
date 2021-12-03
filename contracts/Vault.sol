@@ -9,14 +9,14 @@ import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol"
 
 
 /**
-@title Chequebook contract without waivers
+@title Vault contract without waivers
 @author The Btfs Authors
-@notice The chequebook contract allows the issuer of the chequebook to send cheques to an unlimited amount of counterparties.
+@notice The Vault contract allows the issuer of the Vault to send cheques to an unlimited amount of counterparties.
 Furthermore, solvency can be guaranteed via hardDeposits
 @dev as an issuer, no cheques should be send if the cumulative worth of a cheques send is above the cumulative worth of all deposits
 as a beneficiary, we should always take into account the possibility that a cheque bounces
 */
-contract ChequeBook {
+contract Vault {
   using SafeMath for uint;
 
   event ChequeCashed(
@@ -40,7 +40,7 @@ contract ChequeBook {
     "EIP712Domain(string name,string version,uint256 chainId)"
   );
   bytes32 public constant CHEQUE_TYPEHASH = keccak256(
-    "Cheque(address chequebook,address beneficiary,uint256 cumulativePayout)"
+    "Cheque(address vault,address beneficiary,uint256 cumulativePayout)"
   );
 
 
@@ -53,7 +53,7 @@ contract ChequeBook {
       chainId := chainid()
     }
     return EIP712Domain({
-      name: "Chequebook",
+      name: "Vault",
       version: "1.0",
       chainId: chainId
     });
@@ -79,7 +79,7 @@ contract ChequeBook {
     return ECDSA.recover(digest, sig);
   }
 
-  /* The token against which this chequebook writes cheques */
+  /* The token against which this Vault writes cheques */
   ERC20 public token;
   /* associates every beneficiary with how much has been paid out to them */
   mapping (address => uint) public paidOut;
@@ -91,9 +91,9 @@ contract ChequeBook {
   bool public bounced;
 
   /**
-  @param _issuer the issuer of cheques from this chequebook (needed as an argument for "Setting up a chequebook as a payment").
+  @param _issuer the issuer of cheques from this Vault (needed as an argument for "Setting up a Vault as a payment").
   _issuer must be an Externally Owned Account, or it must support calling the function cashCheque
-  @param _token the token this chequebook uses
+  @param _token the token this Vault uses
   */
   function init(address _issuer, address _token) public {
     require(_issuer != address(0), "invalid issuer");
@@ -102,7 +102,7 @@ contract ChequeBook {
     token = ERC20(_token);
   }
 
-  /// @return the balance of the chequebook
+  /// @return the balance of the Vault
   function totalbalance() public view returns(uint) {
     return token.balanceOf(address(this));
   }
@@ -127,7 +127,7 @@ contract ChequeBook {
       "invalid issuer signature");
     }
 
-    require(cumulativePayout > paidOut[beneficiary], "ChequeBook: cannot cash");
+    require(cumulativePayout > paidOut[beneficiary], "Vault: cannot cash");
     /* the requestPayout is the amount requested for payment processing */
     uint requestPayout = cumulativePayout.sub(paidOut[beneficiary]);
     /* calculates acutal payout */
@@ -167,11 +167,11 @@ contract ChequeBook {
     emit Withdraw(amount);
   }
 
-  function chequeHash(address chequebook, address beneficiary, uint cumulativePayout)
+  function chequeHash(address vault, address beneficiary, uint cumulativePayout)
   internal pure returns (bytes32) {
     return keccak256(abi.encode(
       CHEQUE_TYPEHASH,
-      chequebook,
+      vault,
       beneficiary,
       cumulativePayout
     ));

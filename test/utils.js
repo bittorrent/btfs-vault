@@ -13,17 +13,9 @@ const EIP712Domain = [
 ]
 
 const ChequeType = [
-  { name: 'chequebook', type: 'address' },
+  { name: 'vault', type: 'address' },
   { name: 'beneficiary', type: 'address' },
   { name: 'cumulativePayout', type: 'uint256' }
-]
-
-const CashoutType = [
-  { name: 'chequebook', type: 'address' },
-  { name: 'sender', type: 'address' },
-  { name: 'requestPayout', type: 'uint256' },
-  { name: 'recipient', type: 'address' },
-  { name: 'callerPayout', type: 'uint256' }
 ]
 
 async function sign(hash, signer) {
@@ -45,9 +37,9 @@ function signTypedData(eip712data, signee) {
   )
 }
 
-async function signCheque(swap, beneficiary, cumulativePayout, signee, chainId = ChainId) {
+async function signCheque(vault, beneficiary, cumulativePayout, signee, chainId = ChainId) {
   const cheque = {
-    chequebook: swap.address,
+    vault: vault.address,
     beneficiary,
     cumulativePayout: cumulativePayout.toNumber()
   }
@@ -58,7 +50,7 @@ async function signCheque(swap, beneficiary, cumulativePayout, signee, chainId =
       Cheque: ChequeType
     },
     domain: {
-      name: "Chequebook",
+      name: "Vault",
       version: "1.0",
       chainId
     },
@@ -69,32 +61,7 @@ async function signCheque(swap, beneficiary, cumulativePayout, signee, chainId =
   return signTypedData(eip712data, signee)
 }
 
-async function signCashOut(swap, sender, cumulativePayout, beneficiaryAgent, callerPayout, signee, chainId = ChainId) {
-  const eip712data = {
-    types: {
-      EIP712Domain,
-      Cashout: CashoutType
-    },
-    domain: {
-      name: "Chequebook",
-      version: "1.0",
-      chainId
-    },
-    primaryType: 'Cashout',
-    message: {
-      chequebook: swap.address,
-      sender,
-      requestPayout: cumulativePayout.toNumber(),
-      recipient: beneficiaryAgent,
-      callerPayout: callerPayout.toNumber()
-    }
-  }
-
-  return signTypedData(eip712data, signee)
-}
-
 module.exports = {
-  signCashOut,
   signCheque,
   sign
 };
