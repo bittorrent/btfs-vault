@@ -130,6 +130,8 @@ contract Vault {
     require(cumulativePayout > paidOut[beneficiary], "Vault: cannot cash");
     /* the requestPayout is the amount requested for payment processing */
     uint requestPayout = cumulativePayout.sub(paidOut[beneficiary]);
+    /* check the requestPayout */
+    require(requestPayout > 0, "Vault: already cashed");
     /* calculates acutal payout */
     uint totalPayout = Math.min(requestPayout, totalbalance());
     /* increase the stored paidOut amount to avoid double payout */
