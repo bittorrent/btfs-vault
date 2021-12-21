@@ -28,12 +28,22 @@ contract Vault {
     uint callerPayout
   );
   event ChequeBounced();
-  event Withdraw(uint amount);
+  event Withdraw(address indexed from, uint amount);
+  event Deposit(address indexed from, uint amount);
+
+  event IncreaseStake(uint amount);
+  event DecreaseStake(address indexed recipient, uint amount);
 
   struct EIP712Domain {
     string name;
     string version;
     uint256 chainId;
+  }
+
+  /* structure to keep track of the stake records*/
+  struct stake {
+    uint amount; /* total stake */
+    uint canBeDecreasedAt; /* point in time after which stake can be decreased*/
   }
 
   bytes32 public constant EIP712DOMAIN_TYPEHASH = keccak256(
@@ -89,6 +99,8 @@ contract Vault {
   address public issuer;
   /* indicates wether a cheque bounced in the past */
   bool public bounced;
+  /* total amount staked*/
+  stake public totalStake;
 
   /**
   @param _issuer the issuer of cheques from this Vault (needed as an argument for "Setting up a Vault as a payment").
@@ -105,6 +117,11 @@ contract Vault {
   /// @return the balance of the Vault
   function totalbalance() public view returns(uint) {
     return token.balanceOf(address(this));
+  }
+
+  /// @return the part of the balance that is not covered by totalStake
+  function liquidBalance() public view returns(uint) {
+    return totakbalance().sub(totalStake.amount);
   }
 
   /**
@@ -166,7 +183,15 @@ contract Vault {
     /* ensure we don't take anything from the hard deposit */
     require(amount <= totalbalance(), "totalbalance not sufficient");
     require(token.transfer(issuer, amount), "transfer failed");
-    emit Withdraw(amount);
+    emit Withdraw(issuer, amount);
+  }
+
+  /*
+  * deposit wbtt to this
+  */
+  function deposit(uint amount) public {
+    require(token.transferFrom(msg.sender, address(this), amount), "deposit failed");
+    emit Deposit(msg.sender, amount);
   }
 
   function chequeHash(address vault, address beneficiary, uint cumulativePayout)
@@ -177,5 +202,60 @@ contract Vault {
       beneficiary,
       cumulativePayout
     ));
+  }
+
+
+  /**
+  @notice increase the stake
+  @param amount increased stake amount
+  */
+  function increaseStake(uint amount) public {
+    require(msg.sender == issuer, "increaseStake: not issuer");
+    /* ensure totalStake don't exceed the global balance */
+    require(totalStake.amount.add(amount) <= totakbalance(), "stake exceeds balance");
+    /* increase totalStake*/
+    totalStake.amount = totalStake.amount.add(amount);
+    refreshStakeTime();
+
+    emit IncreaseStake(amount);
+  }
+  
+  function refreshStakeTime() private {
+      totalStake.canBeDecreasedAt = block.timestamp + 180 days;
+  }
+
+  /**
+  @notice decrease the stake 
+  @param amount decreased stake amount
+  */
+  function decreaseStake(uint amount, address recipient) public {
+    require(msg.sender == issuer, "decreaseStake: not issuer");
+    /* must reach lock-up time*/
+    require(block.timestamp >= totalStake.canBeDecreasedAt && totalStake.canBeDecreasedAt != 0, "lock-up time (180 days) not yet been reached");
+    /* must be a right value*/
+    require(amount <= totalStake.amount && amount > 0, "invalid amount");
+
+    /* reset the canBeDecreasedAt */
+    refreshStakeTime();
+    
+    /* update totalStake.amount */
+    totalStake.amount = totalStake.amount.sub(amount);
+
+    // transfer amount to recipient
+    if (recipient != address(0)) {
+      require(token.transfer(recipient, amount), "decreaseStake: transfer failed");
+    }
+    
+    emit DecreaseStake(recipient, amount);
+  }
+  
+  /* get total stake amount */
+  function getTotalStake() public view returns(uint) {
+    return totalStake.amount;
+  }
+
+  /* get lock-up time */
+  function getTimeCanBeDecreased() public view returns(uint) {
+    return totalStake.canBeDecreasedAt;
   }
 }
