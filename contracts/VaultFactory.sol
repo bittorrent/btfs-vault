@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 contract VaultFactory {
 
   /* event fired on every new Vault deployment */
-  event VaultDeployed(address issuer,address contractAddress);
+  event VaultDeployed(address issuer,address contractAddress,string id);
 
   /* mapping to keep track of which contracts were deployed by this factory */
   mapping (address => bool) public deployedContracts;
@@ -34,12 +34,12 @@ contract VaultFactory {
   @param issuer the issuer of cheques for the new vault
   @param salt salt to include in create2 to enable the same address to deploy multiple Vaults
   */
-  function deployVault(address issuer, bytes32 salt)
+  function deployVault(address issuer, bytes32 salt, string memory id)
   public returns (address) {    
     address contractAddress = Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt)));
     Vault(contractAddress).init(issuer, TokenAddress);
     deployedContracts[contractAddress] = true;
-    emit VaultDeployed(issuer,contractAddress);
+    emit VaultDeployed(issuer,contractAddress,id);
     return contractAddress;
   }
 }
