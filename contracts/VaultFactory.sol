@@ -21,6 +21,8 @@ contract VaultFactory {
 
   /* mapping to keep track of which contracts were deployed by this factory */
   mapping (address => bool) public deployedContracts;
+  /* mapping between btfs node's peerID and its vault address */
+  mapping (string => address) public peerVaultAddress;
 
   /* address of the TRC20-token, to be used by the to-be-deployed vaults */
   address public TokenAddress;
@@ -45,6 +47,7 @@ contract VaultFactory {
     address contractAddress = Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt)));
     Vault(contractAddress).init(issuer, TokenAddress);
     deployedContracts[contractAddress] = true;
+    peerVaultAddress[id] = contractAddress;
     emit VaultDeployed(issuer,contractAddress,id);
     return contractAddress;
   }

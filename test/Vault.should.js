@@ -14,13 +14,14 @@ const { expect } = require('chai');
 
 function shouldDeploy(issuer, value) {
 
+  const adminPeerID = "0000000000000000000000000000000000000000000000000000a"
   const salt = "0x000000000000000000000000000000000000000000000000000000000000abcd"
 
   beforeEach(async function() {
     this.TestToken = await TestToken.new({from: issuer})
     await this.TestToken.mint(issuer, 1000000000, {from: issuer});    
     this.vaultFactory = await VaultFactory.new(this.TestToken.address)
-    let { logs } = await this.vaultFactory.deployVault(issuer, salt)
+    let { logs } = await this.vaultFactory.deployVault(issuer, salt, adminPeerID)
     this.VaultAddress = logs[0].args.contractAddress
     this.Vault = await Vault.at(this.VaultAddress)
     if(value != 0) {
