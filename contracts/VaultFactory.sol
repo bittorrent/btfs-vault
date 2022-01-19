@@ -11,11 +11,18 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 */
 contract VaultFactory {
 
-  /* event fired on every new Vault deployment */
-  event VaultDeployed(address issuer,address contractAddress);
+  /**
+  @notice event fired after new Vault deployed
+  @param issuer the issuer of the new vault contract
+  @param contractAddress the address of the new deployed contract
+  @param id the peerID of the btfs node
+  */
+  event VaultDeployed(address issuer,address contractAddress,string id);
 
   /* mapping to keep track of which contracts were deployed by this factory */
   mapping (address => bool) public deployedContracts;
+  /* mapping between btfs node's peerID and its vault address */
+  mapping (string => address) public peerVaultAddress;
 
   /* address of the TRC20-token, to be used by the to-be-deployed vaults */
   address public TokenAddress;
@@ -33,13 +40,15 @@ contract VaultFactory {
   @notice creates a clone of the master Vault contract
   @param issuer the issuer of cheques for the new vault
   @param salt salt to include in create2 to enable the same address to deploy multiple Vaults
+  @param id the peerID of the btfs node
   */
-  function deployVault(address issuer, bytes32 salt)
+  function deployVault(address issuer, bytes32 salt, string memory id)
   public returns (address) {    
     address contractAddress = Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt)));
     Vault(contractAddress).init(issuer, TokenAddress);
     deployedContracts[contractAddress] = true;
-    emit VaultDeployed(issuer,contractAddress);
+    peerVaultAddress[id] = contractAddress;
+    emit VaultDeployed(issuer,contractAddress,id);
     return contractAddress;
   }
 }
