@@ -28,7 +28,8 @@ contract Vault {
     uint callerPayout
   );
   event ChequeBounced();
-  event Withdraw(uint amount);
+  event Withdraw(address indexed from, uint amount);
+  event Deposit(address indexed from, uint amount);
 
   struct EIP712Domain {
     string name;
@@ -166,7 +167,15 @@ contract Vault {
     /* ensure we don't take anything from the hard deposit */
     require(amount <= totalbalance(), "totalbalance not sufficient");
     require(token.transfer(issuer, amount), "transfer failed");
-    emit Withdraw(amount);
+    emit Withdraw(issuer, amount);
+  }
+
+  /*
+  * deposit wbtt to address(this), befrore it, must approve to address(this)
+  */
+  function deposit(uint amount) public {
+    require(token.transferFrom(msg.sender, address(this), amount), "deposit failed");
+    emit Deposit(msg.sender, amount);
   }
 
   function chequeHash(address vault, address beneficiary, uint cumulativePayout)

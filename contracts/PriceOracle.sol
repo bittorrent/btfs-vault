@@ -108,11 +108,19 @@ contract PriceOracle is Ownable {
      * @dev Emitted when the price is updated.
      */
     event PriceUpdate(uint256 price);
+    /**
+     * @dev Emitted when the rate is updated.
+     */
+    event ExchangeRateUpdate(uint256 rate);
 
     // current price in wei per GB/month
     uint256 public price;
-    constructor(uint256 _price) {
+    // current rate
+    uint256 public exchangeRate;
+
+    constructor(uint256 _price, uint256 _exchangeRate) {
         price = _price;
+        exchangeRate = _exchangeRate;
     }
 
     /**
@@ -123,11 +131,27 @@ contract PriceOracle is Ownable {
     }
 
     /**
+     * @notice Returns the rate of price
+     */
+    function getExchangeRate() external view returns (uint256) {
+        return exchangeRate;
+    }
+
+    /**
      * @notice Update the price. Can only be called by the owner.
      * @param newPrice the new price
      */
     function updatePrice(uint256 newPrice) external onlyOwner {
         price = newPrice;
         emit PriceUpdate(price);
+    }
+
+    /**
+     * @notice Update the rate. Can only be called by the owner.
+     * @param newRate the new rate
+     */
+    function updateExchangeRate(uint256 newRate) external onlyOwner {
+        exchangeRate = newRate;
+        emit ExchangeRateUpdate(newRate);
     }
 }
