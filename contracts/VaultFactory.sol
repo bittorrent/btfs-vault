@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 pragma abicoder v2;
-import "./Vault.sol";
+import "./VaultProxy.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
@@ -31,21 +31,24 @@ contract VaultFactory {
 
   constructor(address _TokenAddress) {
     TokenAddress = _TokenAddress;
-    Vault _master = new Vault();
+    VaultProxy _master = new VaultProxy();
     // set the issuer of the master contract to prevent misuse
-    _master.init(address(1), address(0));
+    //_master.init(address(1), address(0));
     master = address(_master);
   }
   /**
   @notice creates a clone of the master Vault contract
   @param issuer the issuer of cheques for the new vault
+  @param _logic the logic vault addr
+  @param admin_  the admin of the vault proxy
   @param salt salt to include in create2 to enable the same address to deploy multiple Vaults
   @param id the peerID of the btfs node
+  @param _data the calldata to run when deploy vault proxy
   */
-  function deployVault(address issuer, bytes32 salt, string memory id)
-  public returns (address) {    
-    address contractAddress = Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt)));
-    Vault(contractAddress).init(issuer, TokenAddress);
+  function deployVault(address issuer, address _logic, address admin_, bytes32 salt, string memory id, bytes memory _data)
+  public returns (address) {
+    address payable contractAddress = payable(Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt))));
+    VaultProxy(contractAddress).init(_logic, admin_, _data);
     deployedContracts[contractAddress] = true;
     peerVaultAddress[id] = contractAddress;
     emit VaultDeployed(issuer,contractAddress,id);
