@@ -40,15 +40,14 @@ contract VaultFactory {
   @notice creates a clone of the master Vault contract
   @param issuer the issuer of cheques for the new vault
   @param _logic the logic vault addr
-  @param admin_  the admin of the vault proxy
   @param salt salt to include in create2 to enable the same address to deploy multiple Vaults
   @param id the peerID of the btfs node
   @param _data the calldata to run when deploy vault proxy
   */
-  function deployVault(address issuer, address _logic, address admin_, bytes32 salt, string memory id, bytes memory _data)
+  function deployVault(address issuer, address _logic, bytes32 salt, string memory id, bytes memory _data)
   public returns (address) {
     address payable contractAddress = payable(Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt))));
-    VaultProxy(contractAddress).init(_logic, admin_, _data);
+    VaultProxy(contractAddress).init(_logic, _data);
     deployedContracts[contractAddress] = true;
     peerVaultAddress[id] = contractAddress;
     emit VaultDeployed(issuer,contractAddress,id);

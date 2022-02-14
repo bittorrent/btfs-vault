@@ -189,7 +189,7 @@ contract Vault is UUPSUpgradeable{
     ));
   }
 
-  function _authorizeUpgrade(address) internal override {
+  function _authorizeUpgrade(address) internal  view override {
     require(msg.sender == issuer, "not issuer");
   }
 }
