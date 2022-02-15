@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol";
 
 
 /**
@@ -17,7 +18,7 @@ Furthermore, solvency can be guaranteed via hardDeposits
 @dev as an issuer, no cheques should be send if the cumulative worth of a cheques send is above the cumulative worth of all deposits
 as a beneficiary, we should always take into account the possibility that a cheque bounces
 */
-contract Vault is UUPSUpgradeable{
+contract Vault is ERC1967UpgradeUpgradeable,UUPSUpgradeable{
   using SafeMath for uint;
 
   event ChequeCashed(
@@ -191,5 +192,9 @@ contract Vault is UUPSUpgradeable{
 
   function _authorizeUpgrade(address) internal  view override {
     require(msg.sender == issuer, "not issuer");
+  }
+
+  function implementation() public view returns (address impl) {
+      return ERC1967UpgradeUpgradeable._getImplementation();
   }
 }
