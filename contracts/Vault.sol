@@ -30,8 +30,8 @@ contract Vault is ERC1967UpgradeUpgradeable,UUPSUpgradeable{
     uint callerPayout
   );
   event ChequeBounced();
-  event Withdraw(address indexed from, uint amount);
-  event Deposit(address indexed from, uint amount);
+  event VaultWithdraw(address indexed from, uint amount);
+  event VaultDeposit(address indexed from, uint amount);
 
   struct EIP712Domain {
     string name;
@@ -171,7 +171,7 @@ contract Vault is ERC1967UpgradeUpgradeable,UUPSUpgradeable{
     /* ensure we don't take anything from the hard deposit */
     require(amount <= totalbalance(), "totalbalance not sufficient");
     require(token.transfer(issuer, amount), "transfer failed");
-    emit Withdraw(issuer, amount);
+    emit VaultWithdraw(issuer, amount);
   }
 
   /*
@@ -179,7 +179,7 @@ contract Vault is ERC1967UpgradeUpgradeable,UUPSUpgradeable{
   */
   function deposit(uint amount) public {
     require(token.transferFrom(msg.sender, address(this), amount), "deposit failed");
-    emit Deposit(msg.sender, amount);
+    emit VaultDeposit(msg.sender, amount);
   }
 
   function chequeHash(address vault, address beneficiary, uint cumulativePayout)
