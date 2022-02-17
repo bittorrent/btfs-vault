@@ -98,9 +98,11 @@ contract Vault is ERC1967UpgradeUpgradeable,UUPSUpgradeable{
   _issuer must be an Externally Owned Account, or it must support calling the function cashCheque
   @param _token the token this Vault uses
   */
-  function init(address _issuer, address _token) public {
+  function init(address _issuer, address _token) public initializer {
     require(_issuer != address(0), "invalid issuer");
     require(issuer == address(0), "already initialized");
+    UUPSUpgradeable.__UUPSUpgradeable_init();
+    ERC1967UpgradeUpgradeable.__ERC1967Upgrade_init();
     issuer = _issuer;
     token = ERC20(_token);
   }
