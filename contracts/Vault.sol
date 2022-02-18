@@ -1,11 +1,13 @@
-// SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 pragma abicoder v2;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol";
 
 
 /**
@@ -16,7 +18,7 @@ Furthermore, solvency can be guaranteed via hardDeposits
 @dev as an issuer, no cheques should be send if the cumulative worth of a cheques send is above the cumulative worth of all deposits
 as a beneficiary, we should always take into account the possibility that a cheque bounces
 */
-contract Vault {
+contract Vault is ERC1967UpgradeUpgradeable,UUPSUpgradeable{
   using SafeMath for uint;
 
   event ChequeCashed(
@@ -28,8 +30,8 @@ contract Vault {
     uint callerPayout
   );
   event ChequeBounced();
-  event Withdraw(address indexed from, uint amount);
-  event Deposit(address indexed from, uint amount);
+  event VaultWithdraw(address indexed from, uint amount);
+  event VaultDeposit(address indexed from, uint amount);
 
   struct EIP712Domain {
     string name;
@@ -96,9 +98,11 @@ contract Vault {
   _issuer must be an Externally Owned Account, or it must support calling the function cashCheque
   @param _token the token this Vault uses
   */
-  function init(address _issuer, address _token) public {
+  function init(address _issuer, address _token) public initializer {
     require(_issuer != address(0), "invalid issuer");
     require(issuer == address(0), "already initialized");
+    UUPSUpgradeable.__UUPSUpgradeable_init();
+    ERC1967UpgradeUpgradeable.__ERC1967Upgrade_init();
     issuer = _issuer;
     token = ERC20(_token);
   }
@@ -167,7 +171,7 @@ contract Vault {
     /* ensure we don't take anything from the hard deposit */
     require(amount <= totalbalance(), "totalbalance not sufficient");
     require(token.transfer(issuer, amount), "transfer failed");
-    emit Withdraw(issuer, amount);
+    emit VaultWithdraw(issuer, amount);
   }
 
   /*
@@ -175,7 +179,7 @@ contract Vault {
   */
   function deposit(uint amount) public {
     require(token.transferFrom(msg.sender, address(this), amount), "deposit failed");
-    emit Deposit(msg.sender, amount);
+    emit VaultDeposit(msg.sender, amount);
   }
 
   function chequeHash(address vault, address beneficiary, uint cumulativePayout)
@@ -186,5 +190,13 @@ contract Vault {
       beneficiary,
       cumulativePayout
     ));
+  }
+
+  function _authorizeUpgrade(address) internal  view override {
+    require(msg.sender == issuer, "not issuer");
+  }
+
+  function implementation() public view returns (address impl) {
+      return ERC1967UpgradeUpgradeable._getImplementation();
   }
 }

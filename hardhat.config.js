@@ -1,5 +1,7 @@
 require("@nomiclabs/hardhat-truffle5");
 require("solidity-coverage")
+require("@nomiclabs/hardhat-waffle");
+require('@openzeppelin/hardhat-upgrades');
 
 
 // Define mnemonic for accounts.
@@ -13,8 +15,8 @@ if (!mnemonic) {
 
 const accounts = { mnemonic };
 
-/* 
-   these pks are test accounts from the network your specified, 
+/*
+   these pks are test accounts from the network your specified,
    change them when start yarn test...
 */
 const pk1 = "0x345d6cedeea99b5c894113472c4490acdd79815f63fbfa80e90689458291be6c";
@@ -25,14 +27,14 @@ const pk4 = "0x0a30e3b64caa73c5986befc782a7b20ac3e7938b754676456f7bf4b8c1dab86b"
 
 // Config for hardhat.
 module.exports = {
-  solidity: { version: '0.8.0',
+  solidity: { version: '0.8.2',
     settings: {
       optimizer: {
         enabled: true,
         runs: 200
       },
     }
-  },  
+  },
   networks: {
     hardhat: {
       accounts,
@@ -45,11 +47,11 @@ module.exports = {
     bttc: {
       url: 'https://test-rpc.bittorrentchain.io/',
       accounts: [pk1, pk2, pk3, pk4],
-      gas: 8500000, 
+      gas: 8500000,
       gasPrice: 300000000000000,
       timeoutBlocks: 200,
     },
-    
+
 
     staging: {
       url: 'https://goerli.infura.io/v3/' + process.env.INFURA_TOKEN,

@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 pragma abicoder v2;
-import "./Vault.sol";
+import "./VaultProxy.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
@@ -24,28 +24,30 @@ contract VaultFactory {
   /* mapping between btfs node's peerID and its vault address */
   mapping (string => address) public peerVaultAddress;
 
-  /* address of the TRC20-token, to be used by the to-be-deployed vaults */
-  address public TokenAddress;
   /* address of the code contract from which all vaults are cloned */
   address public master;
+  /* address of the TRC20-token, to be used by the to-be-deployed vaults */
+  address public TokenAddress;
 
   constructor(address _TokenAddress) {
     TokenAddress = _TokenAddress;
-    Vault _master = new Vault();
+    VaultProxy _master = new VaultProxy();
     // set the issuer of the master contract to prevent misuse
-    _master.init(address(1), address(0));
+    //_master.init(address(1), address(0));
     master = address(_master);
   }
   /**
   @notice creates a clone of the master Vault contract
   @param issuer the issuer of cheques for the new vault
+  @param _logic the logic vault addr
   @param salt salt to include in create2 to enable the same address to deploy multiple Vaults
   @param id the peerID of the btfs node
+  @param _data the calldata to run when deploy vault proxy
   */
-  function deployVault(address issuer, bytes32 salt, string memory id)
-  public returns (address) {    
-    address contractAddress = Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt)));
-    Vault(contractAddress).init(issuer, TokenAddress);
+  function deployVault(address issuer, address _logic, bytes32 salt, string memory id, bytes memory _data)
+  public returns (address) {
+    address payable contractAddress = payable(Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt))));
+    VaultProxy(contractAddress).init(_logic, _data);
     deployedContracts[contractAddress] = true;
     peerVaultAddress[id] = contractAddress;
     emit VaultDeployed(issuer,contractAddress,id);
