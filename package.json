@@ -28,7 +28,7 @@
   },
   "scripts": {
     "compile": "hardhat compile",
-    "test": "hardhat test",
+    "test": "hardhat test --show-stack-traces",
     "abigen": "./abigen/gen.sh Vault.sol VaultFactory ",
     "lint": "solhint contracts/Vault.sol contracts/VaultFactory.sol",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js"
