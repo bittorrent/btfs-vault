@@ -18,10 +18,16 @@ function shouldDeploy(issuer, value) {
   const salt = "0x000000000000000000000000000000000000000000000000000000000000abcd"
 
   beforeEach(async function() {
+    let vaultImpl = await Vault.new({ from: issuer })
+    this.vaultImpl = vaultImpl.address
     this.TestToken = await TestToken.new({from: issuer})
     await this.TestToken.mint(issuer, 1000000000, {from: issuer});    
+
+    let vaultABI = new ethers.utils.Interface(Vault.abi)
+    this.vaultInitData = vaultABI.encodeFunctionData('init', [issuer, this.TestToken.address])
+
     this.vaultFactory = await VaultFactory.new(this.TestToken.address)
-    let { logs } = await this.vaultFactory.deployVault(issuer, salt, adminPeerID)
+    let { logs } = await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, adminPeerID, this.vaultInitData)
     this.VaultAddress = logs[0].args.contractAddress
     this.Vault = await Vault.at(this.VaultAddress)
     if(value != 0) {
