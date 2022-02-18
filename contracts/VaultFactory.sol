@@ -24,10 +24,10 @@ contract VaultFactory {
   /* mapping between btfs node's peerID and its vault address */
   mapping (string => address) public peerVaultAddress;
 
-  /* address of the TRC20-token, to be used by the to-be-deployed vaults */
-  address public TokenAddress;
   /* address of the code contract from which all vaults are cloned */
   address public master;
+  /* address of the TRC20-token, to be used by the to-be-deployed vaults */
+  address public TokenAddress;
 
   constructor(address _TokenAddress) {
     TokenAddress = _TokenAddress;

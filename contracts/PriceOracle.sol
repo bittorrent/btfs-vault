@@ -105,18 +105,18 @@ pragma solidity ^0.8.0;
  */
 contract PriceOracle is Ownable {
     /**
-     * @dev Emitted when the price is updated.
-     */
-    event PriceUpdate(uint256 price);
-    /**
      * @dev Emitted when the rate is updated.
      */
     event ExchangeRateUpdate(uint256 rate);
+    /**
+     * @dev Emitted when the price is updated.
+     */
+    event PriceUpdate(uint256 price);
 
-    // current price in wei per GB/month
-    uint256 public price;
     // current rate
     uint256 public exchangeRate;
+    // current price in wei per GB/month
+    uint256 public price;
 
     constructor(uint256 _price, uint256 _exchangeRate) {
         price = _price;
