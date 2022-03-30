@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.3",
+    "@openzeppelin/contracts-upgradeable": "^4.5.1",
     "solc": "^0.8.10"
   },
   "devDependencies": {

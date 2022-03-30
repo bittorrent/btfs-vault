@@ -19,6 +19,7 @@ contract VaultProxy is Proxy, ERC1967Upgrade {
      * function call, and allows initializating the storage of the proxy like a Solidity constructor.
      */
     function init(address _logic, bytes memory _data) public payable {
+        require(_implementation() == address(0), "already initialized");
         assert(_IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1));
         _upgradeToAndCall(_logic, _data, false);
     }

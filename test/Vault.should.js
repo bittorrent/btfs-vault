@@ -6,6 +6,8 @@ const {
 } = require("@openzeppelin/test-helpers");
 
 const Vault = artifacts.require('Vault')
+const VaultV2 = artifacts.require('VaultV2')
+const VaultProxy = artifacts.require('VaultProxy')
 const VaultFactory = artifacts.require('VaultFactory')
 const TestToken = artifacts.require("TestToken")
 
@@ -19,7 +21,9 @@ function shouldDeploy(issuer, value) {
 
   beforeEach(async function() {
     let vaultImpl = await Vault.new({ from: issuer })
+    let vaultImplV2 = await VaultV2.new({ from: issuer })
     this.vaultImpl = vaultImpl.address
+    this.vaultImplV2 = vaultImplV2.address;
     this.TestToken = await TestToken.new({from: issuer})
     await this.TestToken.mint(issuer, 1000000000, {from: issuer});    
 
@@ -30,21 +34,51 @@ function shouldDeploy(issuer, value) {
     let { logs } = await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, adminPeerID, this.vaultInitData)
     this.VaultAddress = logs[0].args.contractAddress
     this.Vault = await Vault.at(this.VaultAddress)
+    this.VaultProxy = await VaultProxy.at(this.VaultAddress)
+
     if(value != 0) {
       await this.TestToken.transfer(this.Vault.address, value, {from: issuer});
     }
+
     this.postconditions = {
       issuer: await this.Vault.issuer()
     }
   })
 
-  it('should not allow a second init', async function() {
-    await expectRevert(this.Vault.init(issuer, this.TestToken.address), "revert")
-  })
+  it('should not init vault once more', async function() {
+    await expectRevert(this.Vault.init(issuer, this.TestToken.address), "revert");
+  });
+
+  it('should not init valut proxy once more', async function() {
+    await expectRevert(this.VaultProxy.init(this.vaultImpl, this.vaultInitData), 'revert');
+  });
+
+  it('should set the right vault implementation', async function() {
+    expect(await this.Vault.implementation()).to.be.equal(this.vaultImpl);
+  });
 
   it('should set the issuer', function() {
     expect(this.postconditions.issuer).to.be.equal(issuer)
   })
+}
+
+function shouldUpgradeByOwner(owner) {
+  it('should be upgraded successfully', async function() {
+    await this.Vault.upgradeTo(this.vaultImplV2, {from: owner});
+    expect(await this.Vault.implementation()).to.be.equal(this.vaultImplV2);
+    expect(await this.Vault.implementation()).to.not.be.equal(this.vaultImpl);
+
+    let vaultV2 = await VaultV2.at(this.VaultAddress);
+    expect(await vaultV2.version()).to.be.equal("v2.0.0");
+    expect(await vaultV2.implementation()).to.be.equal(this.vaultImplV2);
+  });
+}
+
+function shouldNotUpgradeByOthers(other) {
+  it('should not be upgraded', async function() {
+    await expectRevert(this.Vault.upgradeTo(this.vaultImplV2, {from: other}), 'revert');
+    expect(await this.Vault.implementation()).to.be.equal(this.vaultImpl);
+  });
 }
 
 function shouldReturnPaidOut(beneficiary, expectedAmount) {
@@ -269,6 +303,8 @@ function shouldDeposit(amount, from) {
   })
 }
 module.exports = {
+  shouldUpgradeByOwner,
+  shouldNotUpgradeByOthers,
   shouldDeploy,
   shouldReturnPaidOut,
   shouldReturnTotalPaidOut,

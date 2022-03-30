@@ -2,10 +2,18 @@ const {
   BN
 } = require("@openzeppelin/test-helpers");
 
-const { shouldBehaveLikeVault } = require('./Vault.behavior')
+const { shouldBehaveLikeVault, shouldBehaveUpgradeable } = require('./Vault.behavior')
 const { shouldDeploy } = require('./Vault.should')
 
 contract('Vault', function([issuer, alice, bob, agent]) {
+
+  describe("when upgrade the vault implementation", async function() {
+    this.timeout(100000);
+    const value = new BN(0);
+    shouldDeploy(issuer, value);
+    shouldBehaveUpgradeable([issuer, alice]);
+  });
+
   describe("when we don't deposit while deploying", async function() {
     this.timeout(100000);
     const value = new BN(0)

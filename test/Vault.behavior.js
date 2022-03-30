@@ -11,10 +11,13 @@ const {
   shouldWithdraw,
   shouldNotWithdraw,
   shouldDeposit,
+  shouldUpgradeByOwner,
+  shouldNotUpgradeByOthers,
 } = require('./Vault.should.js')
 
 // switch to false if you don't want to test the particular function
 enabledTests = {
+  upgrade: true,
   cheques: true,
   issuer: true,
   cashChequeBeneficiary: true,
@@ -26,6 +29,25 @@ enabledTests = {
 const describeFunction = 'FUNCTION: '
 const describePreCondition = 'PRE-CONDITION: '
 const describeTest = 'TEST: '
+
+
+function shouldBehaveUpgradeable([issuer, alice]) {
+  describe(describeFunction + 'upgradeTo', function() {
+    if (enabledTests.upgrade) {
+      context('when upgrade by owner', function() {
+        describe(describeTest + 'upgradeTo', function() {
+          shouldUpgradeByOwner(issuer);
+        });
+      });
+
+      context('when upgrade by others', function() {
+        describe(describeTest + 'upgradeTo', function() {
+          shouldNotUpgradeByOthers(alice);
+        });
+      });
+    }
+  });
+}
 
 // @param balance total ether deposited in vault
 // @param issuer the issuer of the vault
@@ -240,5 +262,6 @@ function shouldBehaveLikeVault([issuer, alice, bob, carol]) {
 }
 
 module.exports = {
-  shouldBehaveLikeVault
+  shouldBehaveLikeVault,
+  shouldBehaveUpgradeable,
 };
