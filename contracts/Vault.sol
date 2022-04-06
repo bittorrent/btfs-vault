@@ -133,21 +133,18 @@ contract Vault is ERC1967UpgradeUpgradeable,UUPSUpgradeable{
     }
 
     require(cumulativePayout > paidOut[beneficiary], "Vault: cannot cash");
-    /* the requestPayout is the amount requested for payment processing */
-    uint requestPayout = cumulativePayout.sub(paidOut[beneficiary]);
-    /* check the requestPayout */
-    require(requestPayout > 0, "Vault: already cashed");
-    /* calculates acutal payout */
-    uint totalPayout = Math.min(requestPayout, totalbalance());
-    /* increase the stored paidOut amount to avoid double payout */
-    paidOut[beneficiary] = paidOut[beneficiary].add(totalPayout);
-    totalPaidOut = totalPaidOut.add(totalPayout);
-
+    uint totalPayout = cumulativePayout.sub(paidOut[beneficiary]);
+    uint balance = totalbalance();
     /* let the world know that the issuer has over-promised on outstanding cheques */
-    if (requestPayout != totalPayout) {
+    if (totalPayout > balance) {
       bounced = true;
       emit ChequeBounced();
     }
+    require(totalPayout <= balance, "Vault: insufficient fund");
+
+    /* increase the stored paidOut amount to avoid double payout */
+    paidOut[beneficiary] = paidOut[beneficiary].add(totalPayout);
+    totalPaidOut = totalPaidOut.add(totalPayout);
 
     /* do the actual payment */
     require(token.transfer(recipient, totalPayout), "transfer failed");

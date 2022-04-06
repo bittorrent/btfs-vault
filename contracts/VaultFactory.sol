@@ -32,8 +32,6 @@ contract VaultFactory {
   constructor(address _TokenAddress) {
     TokenAddress = _TokenAddress;
     VaultProxy _master = new VaultProxy();
-    // set the issuer of the master contract to prevent misuse
-    //_master.init(address(1), address(0));
     master = address(_master);
   }
   /**
@@ -46,6 +44,7 @@ contract VaultFactory {
   */
   function deployVault(address issuer, address _logic, bytes32 salt, string memory id, bytes memory _data)
   public returns (address) {
+    require(peerVaultAddress[id] == address(0), "vault alerady created");
     address payable contractAddress = payable(Clones.cloneDeterministic(master, keccak256(abi.encode(msg.sender, salt))));
     VaultProxy(contractAddress).init(_logic, _data);
     deployedContracts[contractAddress] = true;

@@ -8,6 +8,7 @@ const {
 const { expect } = require('chai');
 const VaultFactory = artifacts.require('VaultFactory')
 const Vault = artifacts.require('Vault')
+const VaultProxy = artifacts.require('VaultProxy')
 const TestToken = artifacts.require("TestToken")
 
 contract('VaultFactory', function ([issuer, other1, other2]) {
@@ -22,52 +23,68 @@ contract('VaultFactory', function ([issuer, other1, other2]) {
     beforeEach(async function () {
       let vaultImpl = await Vault.new({ from: issuer })
       this.vaultImpl = vaultImpl.address
-      this.TestToken = await TestToken.new({ from: issuer })
-      this.vaultFactory = await VaultFactory.new(this.TestToken.address)
+      this.testToken = await TestToken.new({ from: issuer })
+      this.vaultFactory = await VaultFactory.new(this.testToken.address)
 
       let vaultABI = new ethers.utils.Interface(Vault.abi)
-      this.vaultInitData = vaultABI.encodeFunctionData('init', [issuer, this.TestToken.address])
+      this.vaultInitData = vaultABI.encodeFunctionData('init', [issuer, this.testToken.address])
 
-      let { logs } = await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, adminPeerID, this.vaultInitData)
-      this.VaultAddress = logs[0].args.contractAddress
-      this.Vault = await Vault.at(this.VaultAddress)
+      let { logs } = await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, adminPeerID, this.vaultInitData);
+      this.vaultAddress = logs[0].args.contractAddress;
+      this.vault = await Vault.at(this.vaultAddress);
+      this.vaultProxy = await VaultProxy.at(this.vaultAddress);
+
       if (value != 0) {
-        await this.TestToken.mint(issuer, value) // mint tokens
-        await this.TestToken.transfer(this.Vault.address, value, { from: issuer }); // deposit those tokens in vault
+        await this.testToken.mint(issuer, value) // mint tokens
+        await this.testToken.transfer(this.vault.address, value, { from: issuer }); // deposit those tokens in vault
       }
     })
 
     it('should deploy with the right issuer', async function () {
-      expect(await this.Vault.issuer()).to.be.equal(issuer)
+      expect(await this.vault.issuer()).to.be.equal(issuer);
     })
+
+    it('should deploy with the right token', async function() {
+      expect(await this.vault.token()).to.be.equal(this.testToken.address);
+    });
+
+    it('should deploy with the right implementation', async function() {
+      expect(await this.vault.implementation()).to.be.equal(this.vaultImpl);
+    });
 
     if (value.gtn(0)) {
       it('should forward the deposit to Vault', async function () {
-        expect(await this.Vault.totalbalance()).to.bignumber.equal(value)
+        expect(await this.vault.totalbalance()).to.bignumber.equal(value)
       })
     }
-
-    it('should record the deployed address', async function () {
-      expect(await this.vaultFactory.deployedContracts(this.VaultAddress)).to.be.true
-    })
-
-    it('should have set the ERC20 address correctly', async function () {
-      expect(await this.Vault.token()).to.be.equal(this.TestToken.address)
-    })
 
     it('should allow other addresses to deploy with same salt', async function () {
       let { logs } = await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, userPeerID1, this.vaultInitData, { from: other1 })
       const vaultAddr1 = logs[0].args.contractAddress
       expect(await this.vaultFactory.deployedContracts(vaultAddr1)).to.be.true
-    })
+    });
+
+    it('should record the deployed address', async function () {
+      expect(await this.vaultFactory.deployedContracts(this.vaultAddress)).to.be.true;
+    });
 
     it("should record the relationship between peerID and it's vault address", async function () {
-      await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, userPeerID1, this.vaultInitData, { from: other1 })
-      await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, userPeerID2, this.vaultInitData, { from: other2 })
-      const vaultAddr1 = await this.vaultFactory.peerVaultAddress(userPeerID1)
-      const vaultAddr2 = await this.vaultFactory.peerVaultAddress(userPeerID2)
-      expect(vaultAddr1).to.be.not.equal(vaultAddr2)
-    })
+      await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, userPeerID1, this.vaultInitData, { from: other1 });
+      await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, userPeerID2, this.vaultInitData, { from: other2 });
+      const vaultAddr1 = await this.vaultFactory.peerVaultAddress(userPeerID1);
+      const vaultAddr2 = await this.vaultFactory.peerVaultAddress(userPeerID2);
+      expect(vaultAddr1).to.be.not.equal("0x00");
+      expect(vaultAddr1).to.be.not.equal(vaultAddr2);
+    });
+
+    it("should peer can only deploy one valut", async function() {
+      await this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, userPeerID1, this.vaultInitData, { from: other1 });
+      await expectRevert(this.vaultFactory.deployVault(issuer, this.vaultImpl, salt, userPeerID1, this.vaultInitData, { from: other1 }), 'revert');
+    });
+
+    it('should vault proxy can only be initialized once', async function() {
+      await expectRevert(this.vaultProxy.init(this.vaultImpl, this.vaultInitData), 'revert');
+    });
 
   }
 
@@ -86,12 +103,12 @@ contract('VaultFactory', function ([issuer, other1, other2]) {
       this.timeout(100000);
       it('should fail', async function () {
         this.vaultImpl = await Vault.new({ from: issuer })
-        this.TestToken = await TestToken.new({ from: issuer })
+        this.testToken = await TestToken.new({ from: issuer })
 
         let vaultABI = new ethers.utils.Interface(Vault.abi)
-        let vaultInitData = vaultABI.encodeFunctionData('init', [constants.ZERO_ADDRESS, this.TestToken.address])
+        let vaultInitData = vaultABI.encodeFunctionData('init', [constants.ZERO_ADDRESS, this.testToken.address])
 
-        this.vaultFactory = await VaultFactory.new(this.TestToken.address)
+        this.vaultFactory = await VaultFactory.new(this.testToken.address)
         await expectRevert(this.vaultFactory.deployVault(constants.ZERO_ADDRESS, this.vaultImpl.address, salt, adminPeerID, vaultInitData), 'invalid issuer')
       })
     })
