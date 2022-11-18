@@ -109,37 +109,25 @@ contract PriceOracle is Ownable {
      */
     event ExchangeRateUpdate(uint256 rate);
     /**
-     * @dev Emitted when the prices of the specified tokens is updated.
+     * @dev Emitted when the price is updated.
      */
-    event PricesUpdate(address[] tokens, uint256[] newPrices);
+    event PriceUpdate(uint256 price);
 
     // current rate
     uint256 public exchangeRate;
-    // the current price of token in wei per GB/month
-    mapping (address => uint256) public prices;
+    // current price in wei per GB/month
+    uint256 public price;
 
-    constructor(uint256 _exchangeRate) {
+    constructor(uint256 _price, uint256 _exchangeRate) {
+        price = _price;
         exchangeRate = _exchangeRate;
     }
 
     /**
-     * @notice Returns the current price of the specified token in wei per GB/month
-     * @param token the specified token address
+     * @notice Returns the current price in wei per GB/month
      */
-    function getPrice(address token) external view returns (uint256) {
-        return prices[token];
-    }
-
-    /**
-     * @notice Returns the current prices of the specified tokens in wei per GB/month
-     * @param tokens the specified tokens addresses
-     */
-    function getPrices(address[] calldata tokens) external view returns (uint256[] memory result) {
-        require(tokens.length > 0, "tokens length not greater than 0");
-        result = new uint256[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
-            result[i] = prices[tokens[i]];
-        }
+    function getPrice() external view returns (uint256) {
+        return price;
     }
 
     /**
@@ -151,16 +139,11 @@ contract PriceOracle is Ownable {
 
     /**
      * @notice Update the price. Can only be called by the owner.
-     * @param tokens the specified tokens addresses
-     * @param newPrices the new prices corresponding to the specified tokens
+     * @param newPrice the new price
      */
-    function updatePrices(address[] calldata tokens, uint256[] calldata newPrices) external onlyOwner {
-        require(tokens.length > 0, "length not grater than 0");
-        require(tokens.length == newPrices.length, "length not match");
-        for (uint256 i = 0; i < tokens.length; i++) {
-            prices[tokens[i]] = newPrices[i];
-        }
-        emit PricesUpdate(tokens, newPrices);
+    function updatePrice(uint256 newPrice) external onlyOwner {
+        price = newPrice;
+        emit PriceUpdate(price);
     }
 
     /**
@@ -171,5 +154,4 @@ contract PriceOracle is Ownable {
         exchangeRate = newRate;
         emit ExchangeRateUpdate(newRate);
     }
-
 }
