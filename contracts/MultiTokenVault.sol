@@ -82,7 +82,7 @@ contract MultiTokenVault is Vault {
     require(totalPayout <= balance, "Vault: insufficient fund");
 
     /* increase the stored paidOut amount to avoid double payout */
-    multiTokensPaidOut[_token][beneficiary] = paidOut[beneficiary].add(totalPayout);
+    multiTokensPaidOut[_token][beneficiary] = multiTokensPaidOut[_token][beneficiary].add(totalPayout);
     multiTokensTotalPaidOut[_token] = multiTokensTotalPaidOut[_token].add(totalPayout);
 
     /* do the actual payment */
