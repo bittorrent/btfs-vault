@@ -61,7 +61,40 @@ async function signCheque(vault, beneficiary, cumulativePayout, signee, chainId 
   return signTypedData(eip712data, signee)
 }
 
+const MultiTokenChequeType = [
+  { name: 'token', type: 'address' },
+  { name: 'vault', type: 'address' },
+  { name: 'beneficiary', type: 'address' },
+  { name: 'cumulativePayout', type: 'uint256' }
+];
+
+async function signMultiTokenCheque(token, vault, beneficiary, cumulativePayout, signee, chainId = ChainId) {
+  const multiTokenCheque = {
+    token: token,
+    vault: vault.address,
+    beneficiary,
+    cumulativePayout: cumulativePayout.toNumber()
+  };
+
+  const eip712data = {
+    types: {
+      EIP712Domain,
+      MultiTokenCheque: MultiTokenChequeType
+    },
+    domain: {
+      name: "Vault",
+      version: "1.0",
+      chainId
+    },
+    primaryType: 'MultiTokenCheque',
+    message: multiTokenCheque
+  };
+
+  return signTypedData(eip712data, signee);
+}
+
 module.exports = {
   signCheque,
+  signMultiTokenCheque,
   sign
 };
